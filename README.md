@@ -6,7 +6,6 @@ A baseline model/pipeline comparing **AdamW** and **SophiaG** optimizers. Both s
 |------|----------------|
 | **180.py** | MNIST digit classification (MLP) |
 | **180exp1_openwebtext.py** | OpenWebText + Tiny GPT-2 (language modeling) |
-| **180exp1_openwebtext.ipynb** | Same as .py (Jupyter notebook for Colab/local) |
 
 Each file contains:
 - **Experiment 1:** AdamW vs SophiaG optimizer comparison
@@ -68,8 +67,6 @@ python 180exp1_openwebtext.py
 Runs both experiments on OpenWebText/Tiny GPT-2:
 - **Experiment 1:** AdamW vs SophiaG on Tiny GPT-2 for 1000 steps; plots validation and training loss.
 - **Experiment 2:** SophiaG rho sweep on OpenWebText + Tiny GPT-2 (same setup as Experiment 1).
-
-To run the **Jupyter notebook** (`180exp1_openwebtext.ipynb`) instead: open in Colab or Jupyter and run all cells. It mirrors the .py script.
 
 Note: In Colab, uncomment the `!pip` and `!git` lines. For local runs, run those commands in your terminal instead.
 
