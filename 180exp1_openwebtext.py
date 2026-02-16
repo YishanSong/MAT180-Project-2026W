@@ -297,96 +297,22 @@ plt.legend()
 plt.show()
 
 # ==============================================================================
-# EXPERIMENT 2: Sophia rho Hyperparameter Sweep on MNIST
+# EXPERIMENT 2: Sophia rho Hyperparameter Sweep on OpenWebText + Tiny GPT-2
 # Examines how the clipping threshold (rho) affects val_loss and clip proportion
+# Reuses train_loader, val_loader, create_model, evaluate from Experiment 1
 # ==============================================================================
 
-import sys
-sys.path.append("/content/Sophia")
-
-from sophia import SophiaG
-
-# Basic imports and device setup
-import random, numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision
-import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Torch:", torch.__version__)
-print("CUDA available:", torch.cuda.is_available())
-
-# Hyperparameters and MNIST dataset configuration
-BATCH_SIZE = 512   # Batch size for MNIST training
-LR = 1e-3          # Learning rate
-
-MAX_STEPS  = 2000  # Total training steps
 LOG_EVERY  = 100   # Log clip proportion every N steps
-EVAL_EVERY = 200   # Evaluate on validation set every N steps
-SEED       = 42    # Random seed for reproducibility
-
-transform = transforms.ToTensor()
-trainset = torchvision.datasets.MNIST(root="./data", train=True, download=True, transform=transform)
-testset  = torchvision.datasets.MNIST(root="./data", train=False, download=True, transform=transform)
-
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-testloader  = torch.utils.data.DataLoader(testset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
-
-# Simple MLP: 784 -> 256 -> 128 -> 10
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(28 * 28, 256),
-            nn.ReLU(),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Linear(128, 10)
-        )
-
-    def forward(self, x):
-        return self.fc(x)
+EVAL_EVERY = 200   # Evaluate on validation set every N steps (same as Exp1)
 
 
-# Utility: set all random seeds for reproducibility
 def set_seed(seed=42):
+    """Set random seeds for reproducibility (resets for each rho run)."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-
-
-@torch.no_grad()
-def eval_model(model, loader):
-    """
-    Evaluate model on the given data loader.
-    Returns (average_loss, accuracy).
-    """
-    model.eval()
-    criterion = nn.CrossEntropyLoss()
-    total_loss = 0.0
-    correct = 0
-    total = 0
-
-    for x, y in loader:
-        x, y = x.to(device), y.to(device)
-        logits = model(x)
-        loss = criterion(logits, y)
-
-        total_loss += loss.item() * y.size(0)
-        pred = logits.argmax(dim=1)
-        correct += (pred == y).sum().item()
-        total += y.size(0)
-
-    model.train()
-    avg_loss = total_loss / total
-    acc = correct / total
-    return avg_loss, acc
 
 
 @torch.no_grad()
@@ -444,19 +370,19 @@ def train_sophia_with_rho(
     gamma=1.0,
 ):
     """
-    Train MLP with SophiaG using a given rho (clipping threshold).
+    Train Tiny GPT-2 on OpenWebText with SophiaG using a given rho (clipping threshold).
+    Reuses train_loader, val_loader, create_model, evaluate from Experiment 1.
     Returns dict with val_steps, val_losses, and clip_props.
     """
     set_seed(seed)
-    model = Net().to(device)
-    criterion = nn.CrossEntropyLoss()
+    model = create_model()
 
     optimizer = SophiaG(
         model.parameters(),
         lr=LR,
         betas=(0.965, 0.99),
         rho=rho,
-        weight_decay=0.01,
+        weight_decay=0.1,
     )
 
     print("optimizer group rho =", optimizer.param_groups[0].get("rho", None))
@@ -466,20 +392,22 @@ def train_sophia_with_rho(
     val_losses = []
     clip_props = []
 
-    train_iter = iter(trainloader)
+    train_iter = iter(train_loader)
 
+    model.train()
     while steps < max_steps:
         try:
-            x, y = next(train_iter)
+            batch = next(train_iter)
         except StopIteration:
-            train_iter = iter(trainloader)
-            x, y = next(train_iter)
+            train_iter = iter(train_loader)
+            batch = next(train_iter)
 
-        x, y = x.to(device), y.to(device)
+        input_ids = batch["input_ids"].to(device)
+        labels = batch["labels"].to(device)
 
         optimizer.zero_grad(set_to_none=True)
-        logits = model(x)
-        loss = criterion(logits, y)
+        outputs = model(input_ids, labels=labels)
+        loss = outputs.loss
         loss.backward()
         optimizer.update_hessian()
 
@@ -491,7 +419,7 @@ def train_sophia_with_rho(
             clip_props.append(clip_prop)
 
         if steps % eval_every == 0:
-            val_loss, _ = eval_model(model, testloader)
+            val_loss = evaluate(model)
             val_steps.append(steps)
             val_losses.append(val_loss)
             print(f"[rho={rho}] step {steps} | val_loss={val_loss:.4f}")
@@ -549,7 +477,7 @@ for rho in RHO_LIST:
     plt.plot(st["val_steps"], st["val_losses"], marker="o", label=f"rho={rho}")
 plt.xlabel("step")
 plt.ylabel("val_loss")
-plt.title("Exp2: val_loss vs step (different rho)")
+plt.title("Exp2: val_loss vs step (different rho) - Tiny GPT on OpenWebText")
 plt.legend()
 plt.tight_layout()
 plt.show()
@@ -562,7 +490,7 @@ for rho in RHO_LIST:
     plt.plot(steps, cp, marker="o", label=f"rho={rho}")
 plt.xlabel("step")
 plt.ylabel("clipping proportion")
-plt.title("Exp2: clipping proportion vs step")
+plt.title("Exp2: clipping proportion vs step - Tiny GPT on OpenWebText")
 plt.legend()
 plt.tight_layout()
 plt.show()
