@@ -1,8 +1,15 @@
 # MAT180: AdamW vs SophiaG Optimizer Comparison
 
-A baseline model/pipeline comparing **AdamW** and **SophiaG** optimizers on:
-1. **180.py** — MNIST digit classification with MLP; includes Sophia rho hyperparameter sweep
-2. **180exp1_openwebtext.py** — Tiny GPT-2 language modeling on OpenWebText; AdamW vs SophiaG
+A baseline model/pipeline comparing **AdamW** and **SophiaG** optimizers. Both scripts run **Experiment 1** and **Experiment 2**; the difference is the dataset:
+
+| File | Dataset / Task |
+|------|----------------|
+| **180.py** | MNIST digit classification (MLP) |
+| **180exp1_openwebtext.py** | OpenWebText + Tiny GPT-2 (language modeling) |
+
+Each file contains:
+- **Experiment 1:** AdamW vs SophiaG optimizer comparison
+- **Experiment 2:** Sophia rho hyperparameter sweep
 
 ## Setup Instructions
 
@@ -47,8 +54,9 @@ sys.path.append("./Sophia")  # or "/content/Sophia" in Colab
 python 180.py
 ```
 
-- **Experiment 1:** Trains an MLP on MNIST for 2 epochs with AdamW and SophiaG, then plots loss comparison.
-- **Experiment 2:** Runs SophiaG with different `rho` values (1e-4, 1e-2, 1e0) and plots val_loss and clipping proportion.
+Runs both experiments on MNIST:
+- **Experiment 1:** AdamW vs SophiaG on MLP for 2 epochs; plots loss comparison.
+- **Experiment 2:** SophiaG rho sweep (1e-4, 1e-2, 1e0); plots val_loss and clipping proportion.
 
 ### 180exp1_openwebtext.py (OpenWebText + Tiny GPT-2)
 
@@ -56,10 +64,11 @@ python 180.py
 python 180exp1_openwebtext.py
 ```
 
-Note: In Colab, uncomment the `!pip` and `!git` lines in the script. For local runs, those commands are commented out—run them in your terminal instead, and set `sys.path.append("./Sophia")` (or your local Sophia path).
+Runs both experiments on OpenWebText/Tiny GPT-2:
+- **Experiment 1:** AdamW vs SophiaG on Tiny GPT-2 for 1000 steps; plots validation and training loss.
+- **Experiment 2:** Same SophiaG rho sweep on MNIST (uses MNIST for this experiment).
 
-- **Experiment 1:** Loads OpenWebText subset, trains Tiny GPT-2 with AdamW and SophiaG for 1000 steps, plots validation and training loss.
-- **Experiment 2:** Same Sophia rho sweep as in 180.py on MNIST.
+Note: In Colab, uncomment the `!pip` and `!git` lines. For local runs, run those commands in your terminal instead.
 
 ## Where Outputs / Results Go
 
