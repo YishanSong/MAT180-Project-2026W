@@ -332,6 +332,7 @@ def train_sophia_with_rho(
         logits = model(x)
         loss = criterion(logits, y)
         loss.backward()
+        optimizer.update_hessian()
 
         optimizer.step(bs=BATCH_SIZE)
         steps += 1
